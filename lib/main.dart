@@ -1,6 +1,36 @@
 import 'package:flutter/material.dart';
+import 'dart:convert';
 
 void main() => runApp(MyApp());
+
+class FlashCard {
+  FlashCard(this.id, this.title, this.front, this.back, this.tags, this.decks);
+
+  String id;
+  String title;
+  String front;
+  String back;
+  List<String> tags;
+  List<String> decks;
+
+  String toString() {
+    return "$id $title $front $back ${tags.toString()}, ${decks.toString()}";
+  }
+
+  FlashCard.fromJson(String jsonString) {
+    final Map jsonData = json.decode(jsonString);
+    id = jsonData["id"];
+    title = jsonData["title"];
+    front = jsonData["front"];
+    back = jsonData["back"];
+    tags = List.from(jsonData["tags"]);
+    decks = List.from(jsonData["decks"]);
+  }
+
+  Map toJson() {
+    return {"id": id, "title": title, "front": front, "back": back, "tags": tags.toString(), "decks": decks.toString()};
+  }
+}
 
 class MyApp extends StatelessWidget {
   // This widget is the root of your application.
@@ -46,6 +76,12 @@ class MyHomePage extends StatefulWidget {
 class _MyHomePageState extends State<MyHomePage> {
   int _counter = 0;
   void _incrementCounter() {
+    String theJSON = """{"id":"a globally unique ID to identify the card","title":"an optional title","front":
+      "This is the front of the card!","back":"This is the back of the card!","tags":["a","list","of","tags",
+      "that","the","card","has"],"decks":["a","list","of","globally unique","deck IDs","that","this","Card",
+      "Belongs","to"]}""";
+    FlashCard card = new FlashCard.fromJson(theJSON);
+    print(card.toString());
     setState(() {
       // This call to setState tells the Flutter framework that something has
       // changed in this State, which causes it to rerun the build method below
