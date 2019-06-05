@@ -19,8 +19,8 @@ class Deck {
     return "$id ${cards.toString()}";
   }
 
-  Deck.fromJson(String jsonString) {
-    final Map jsonData = json.decode(jsonString);
+  Deck.fromJsonString(String jsonString) {
+    final Map<String, dynamic> jsonData = json.decode(jsonString);
     id = jsonData["id"];
     title = jsonData["title"];
     cards = List.from(
@@ -28,7 +28,7 @@ class Deck {
     tags = List.from(jsonData["tags"]);
   }
 
-  Map toJson() {
+  Map<String, dynamic> toJson() {
     return {
       "id": id,
       "title": title,
@@ -56,8 +56,8 @@ class FlashCard {
     return "$id $title $front $back ${tags.toString()}, ${decks.toString()}";
   }
 
-  FlashCard.fromJson(String jsonString) {
-    final Map jsonData = json.decode(jsonString);
+  FlashCard.fromJsonString(String jsonString) {
+    final Map<String, dynamic> jsonData = json.decode(jsonString);
     id = jsonData["id"];
     title = jsonData["title"];
     front = jsonData["front"];
@@ -75,7 +75,7 @@ class FlashCard {
     decks = List.from(flashcardObj["decks"]);
   }
 
-  Map toJson() {
+  Map<String, dynamic> toJson() {
     return {
       "id": id,
       "title": title,
@@ -149,7 +149,7 @@ class _MyHomePageState extends State<MyHomePage> {
     {"id":"uniq-id-8","title":"card 8","front":"front of card 8","back":"back of card 8","tags":["list","of","tags"],"decks":["a","list"]},
     {"id":"uniq-id-9","title":"card 9","front":"front of card 9","back":"back of card 9","tags":["list","of","tags"],"decks":["a","list"]}]}""";
 
-  Deck _deck = new Deck.fromJson(testDeck);
+  Deck _deck = new Deck.fromJsonString(testDeck);
   List<FlashCard> _cardList;
   FlashCard _activeCard;
   int _activeCardIdx = 0;
