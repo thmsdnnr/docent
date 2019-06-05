@@ -135,7 +135,6 @@ class _MyHomePageState extends State<MyHomePage> {
   FractionallySizedBox _cardToShow;
   static final Icon flipToBack = new Icon(Icons.flip_to_back);
   static final Icon flipToFront = new Icon(Icons.flip_to_front);
-  Icon _thisIcon = flipToBack;
 
   static String testDeck =
       """{"id":"the-deck-id","title":"atestdeck","tags":["some","deck","tags"],"cards":[
@@ -153,7 +152,9 @@ class _MyHomePageState extends State<MyHomePage> {
   Deck _deck = new Deck.fromJson(testDeck);
   List<FlashCard> _cardList;
   FlashCard _activeCard;
-  int _activeCardIdx = 5;
+  int _activeCardIdx = 0;
+  int _totalCardCt;
+  Icon _thisIcon;
 
   @override
   initState() {
@@ -161,6 +162,7 @@ class _MyHomePageState extends State<MyHomePage> {
     _cardList = _deck.getCards();
     _activeCard = _cardList[_activeCardIdx];
     _cardToShow = _activeCard.toWidget(sideToDisplay: _shownSide);
+    _totalCardCt = _cardList.length;
   }
 
   void _flipCard() {
@@ -172,20 +174,58 @@ class _MyHomePageState extends State<MyHomePage> {
         _shownSide = FlashCardSide.front;
         _thisIcon = flipToFront;
       }
-      _cardToShow = _activeCard.toWidget(sideToDisplay: _shownSide);
+    });
+  }
+
+  bool _canGoBack() => _activeCardIdx > 0 ? true : false;
+  bool _canGoForward() => _activeCardIdx == _totalCardCt - 1 ? false : true;
+
+  void _handleBackPress() {
+    if (!_canGoBack()) {
+      return;
+    }
+    setState(() {
+      _activeCardIdx = _activeCardIdx - 1;
+      _shownSide = FlashCardSide.front;
+    });
+  }
+
+  void _handleForwardPress() {
+    if (!_canGoForward()) {
+      return;
+    }
+    setState(() {
+      _activeCardIdx = _activeCardIdx + 1;
+      _shownSide = FlashCardSide.front;
     });
   }
 
   @override
   Widget build(BuildContext context) {
+    _activeCard = _cardList[_activeCardIdx];
+    _cardToShow = _activeCard.toWidget(sideToDisplay: _shownSide);
     return Scaffold(
       body: new Center(
+          child: new GestureDetector(
         child: _cardToShow,
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _flipCard,
-        tooltip: 'Flip Card',
-        child: _thisIcon,
+        onTap: _flipCard,
+      )),
+      bottomNavigationBar: new ButtonBar(
+        mainAxisSize: MainAxisSize.min,
+        alignment: MainAxisAlignment.center,
+        children: <Widget>[
+          new IconButton(
+            icon: new Icon(Icons.arrow_back, size: 32),
+            onPressed: _canGoBack() == true ? _handleBackPress : null,
+          ),
+          Text("${_activeCardIdx + 1} / $_totalCardCt",
+              style: TextStyle(fontWeight: FontWeight.w500, fontSize: 24),
+              textAlign: TextAlign.center),
+          new IconButton(
+            icon: new Icon(Icons.arrow_forward, size: 32),
+            onPressed: _canGoForward() == true ? _handleForwardPress : null,
+          ),
+        ],
       ),
     );
   }
