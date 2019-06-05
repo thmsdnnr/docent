@@ -95,13 +95,18 @@ class FlashCard {
             mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              ListTile(
-                title: Text(
-                  sideToDisplay == FlashCardSide.front ? front : back,
-                  style: TextStyle(fontWeight: FontWeight.w500, fontSize: 32),
-                  textAlign: TextAlign.center,
-                ),
-              )
+              new Expanded(
+                  flex: 1,
+                  child: Center(
+                    child: SingleChildScrollView(
+                        padding: EdgeInsets.all(24.0),
+                        child: Text(
+                          sideToDisplay == FlashCardSide.front ? front : back,
+                          style: TextStyle(
+                              fontWeight: FontWeight.w500, fontSize: 32),
+                          textAlign: TextAlign.center,
+                        )),
+                  ))
             ],
           ),
         ),
@@ -138,7 +143,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
   static String testDeck =
       """{"id":"the-deck-id","title":"atestdeck","tags":["some","deck","tags"],"cards":[
-    {"id":"uniq-id-0","title":"card 0","front":"front of card 0","back":"back of card 0","tags":["list","of","tags"],"decks":["a","list"]},
+    {"id":"uniq-id-0","title":"card 0","front":"front of card 0front of card 0front of card 0front of card 0front of card 0front of card 0front of card0front of card 0front of card0front of card 0front of card0front of card 0front of card0front of card 0front of card0front of card 0front of card0front of card 0front of card0front of card 0front of card0front of card 0front of card0front of card 0front of card 0front of card 0front of card 0front of card 0front of card 0front of card 0front of card 0front of card 0","back":"back of card 0","tags":["list","of","tags"],"decks":["a","list"]},
     {"id":"uniq-id-1","title":"card 1","front":"front of card 1","back":"back of card 1","tags":["list","of","tags"],"decks":["a","list"]},
     {"id":"uniq-id-2","title":"card 2","front":"front of card 2","back":"back of card 2","tags":["list","of","tags"],"decks":["a","list"]},
     {"id":"uniq-id-3","title":"card 3","front":"front of card 3","back":"back of card 3","tags":["list","of","tags"],"decks":["a","list"]},
