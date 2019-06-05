@@ -1,4 +1,4 @@
-package com.example.inaflash;
+package com.example.docent;
 
 import android.os.Bundle;
 import io.flutter.app.FlutterActivity;

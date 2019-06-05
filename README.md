@@ -1,4 +1,4 @@
-# inaflash
+# docent
 
 A new Flutter project.
 
