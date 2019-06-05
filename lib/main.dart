@@ -7,6 +7,41 @@ void main() => runApp(MyApp());
 
 enum FlashCardSide { front, back }
 
+class Deck {
+  Deck(this.id, this.title, this.cards, this.tags);
+
+  String id;
+  String title;
+  List<FlashCard> cards;
+  List<String> tags;
+
+  String toString() {
+    return "$id ${cards.toString()}";
+  }
+
+  Deck.fromJson(String jsonString) {
+    final Map jsonData = json.decode(jsonString);
+    id = jsonData["id"];
+    title = jsonData["title"];
+    cards = List.from(
+        jsonData["cards"].map((card) => new FlashCard.fromObject(card)));
+    tags = List.from(jsonData["tags"]);
+  }
+
+  Map toJson() {
+    return {
+      "id": id,
+      "title": title,
+      "tags": tags.toString(),
+      "cards": cards.toString()
+    };
+  }
+
+  List<FlashCard> getCards() {
+    return cards;
+  }
+}
+
 class FlashCard {
   FlashCard(this.id, this.title, this.front, this.back, this.tags, this.decks);
 
@@ -29,6 +64,15 @@ class FlashCard {
     back = jsonData["back"];
     tags = List.from(jsonData["tags"]);
     decks = List.from(jsonData["decks"]);
+  }
+
+  FlashCard.fromObject(flashcardObj) {
+    id = flashcardObj["id"];
+    title = flashcardObj["title"];
+    front = flashcardObj["front"];
+    back = flashcardObj["back"];
+    tags = List.from(flashcardObj["tags"]);
+    decks = List.from(flashcardObj["decks"]);
   }
 
   Map toJson() {
@@ -93,30 +137,42 @@ class _MyHomePageState extends State<MyHomePage> {
   static final Icon flipToFront = new Icon(Icons.flip_to_front);
   Icon _thisIcon = flipToBack;
 
-  static String theJSON =
-      """{"id":"a globally unique ID to identify the card","title":"an optional title","front":
-  "This is the front of the card!","back":"This is the back of the card!","tags":["a","list","of","tags",
-  "that","the","card","has"],"decks":["a","list","of","globally unique","deck IDs","that","this","Card",
-  "Belongs","to"]}""";
-  FlashCard _card = new FlashCard.fromJson(theJSON);
+  static String testDeck =
+      """{"id":"the-deck-id","title":"atestdeck","tags":["some","deck","tags"],"cards":[
+    {"id":"uniq-id-0","title":"card 0","front":"front of card 0","back":"back of card 0","tags":["list","of","tags"],"decks":["a","list"]},
+    {"id":"uniq-id-1","title":"card 1","front":"front of card 1","back":"back of card 1","tags":["list","of","tags"],"decks":["a","list"]},
+    {"id":"uniq-id-2","title":"card 2","front":"front of card 2","back":"back of card 2","tags":["list","of","tags"],"decks":["a","list"]},
+    {"id":"uniq-id-3","title":"card 3","front":"front of card 3","back":"back of card 3","tags":["list","of","tags"],"decks":["a","list"]},
+    {"id":"uniq-id-4","title":"card 4","front":"front of card 4","back":"back of card 4","tags":["list","of","tags"],"decks":["a","list"]},
+    {"id":"uniq-id-5","title":"card 5","front":"front of card 5","back":"back of card 5","tags":["list","of","tags"],"decks":["a","list"]},
+    {"id":"uniq-id-6","title":"card 6","front":"front of card 6","back":"back of card 6","tags":["list","of","tags"],"decks":["a","list"]},
+    {"id":"uniq-id-7","title":"card 7","front":"front of card 7","back":"back of card 7","tags":["list","of","tags"],"decks":["a","list"]},
+    {"id":"uniq-id-8","title":"card 8","front":"front of card 8","back":"back of card 8","tags":["list","of","tags"],"decks":["a","list"]},
+    {"id":"uniq-id-9","title":"card 9","front":"front of card 9","back":"back of card 9","tags":["list","of","tags"],"decks":["a","list"]}]}""";
+
+  Deck _deck = new Deck.fromJson(testDeck);
+  List<FlashCard> _cardList;
+  FlashCard _activeCard;
+  int _activeCardIdx = 5;
 
   @override
   initState() {
     super.initState();
-    _cardToShow = _card.toWidget(sideToDisplay: _shownSide);
+    _cardList = _deck.getCards();
+    _activeCard = _cardList[_activeCardIdx];
+    _cardToShow = _activeCard.toWidget(sideToDisplay: _shownSide);
   }
 
   void _flipCard() {
     setState(() {
       if (_shownSide == FlashCardSide.front) {
         _shownSide = FlashCardSide.back;
-        _cardToShow = _card.toWidget(sideToDisplay: _shownSide);
         _thisIcon = flipToBack;
       } else {
         _shownSide = FlashCardSide.front;
-        _cardToShow = _card.toWidget(sideToDisplay: _shownSide);
         _thisIcon = flipToFront;
       }
+      _cardToShow = _activeCard.toWidget(sideToDisplay: _shownSide);
     });
   }
 
