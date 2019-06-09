@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
-
+import "./database.dart";
 import './models/FlashCard.dart';
 import './models/Deck.dart';
 
@@ -30,47 +30,52 @@ class MyHomePage extends StatefulWidget {
 
 class _MyHomePageState extends State<MyHomePage> {
   FlashCardSide _shownSide = FlashCardSide.front;
-  FractionallySizedBox _cardToShow;
-  static final Icon flipToBack = new Icon(Icons.flip_to_back);
-  static final Icon flipToFront = new Icon(Icons.flip_to_front);
 
-  static String testDeck =
-      """{"id":"the-deck-id","title":"atestdeck","tags":["some","deck","tags"],"cards":[
-    {"id":"uniq-id-0","title":"card 0","front":"front of card 0front of card 0front of card 0front of card 0front of card 0front of card 0front of card0front of card 0front of card0front of card 0front of card0front of card 0front of card0front of card 0front of card0front of card 0front of card0front of card 0front of card0front of card 0front of card0front of card 0front of card0front of card 0front of card 0front of card 0front of card 0front of card 0front of card 0front of card 0front of card 0front of card 0","back":"back of card 0","tags":["list","of","tags"],"decks":["a","list"]},
-    {"id":"uniq-id-1","title":"card 1","front":"front of card 1","back":"back of card 1","tags":["list","of","tags"],"decks":["a","list"]},
-    {"id":"uniq-id-2","title":"card 2","front":"front of card 2","back":"back of card 2","tags":["list","of","tags"],"decks":["a","list"]},
-    {"id":"uniq-id-3","title":"card 3","front":"front of card 3","back":"back of card 3","tags":["list","of","tags"],"decks":["a","list"]},
-    {"id":"uniq-id-4","title":"card 4","front":"front of card 4","back":"back of card 4","tags":["list","of","tags"],"decks":["a","list"]},
-    {"id":"uniq-id-5","title":"card 5","front":"front of card 5","back":"back of card 5","tags":["list","of","tags"],"decks":["a","list"]},
-    {"id":"uniq-id-6","title":"card 6","front":"front of card 6","back":"back of card 6","tags":["list","of","tags"],"decks":["a","list"]},
-    {"id":"uniq-id-7","title":"card 7","front":"front of card 7","back":"back of card 7","tags":["list","of","tags"],"decks":["a","list"]},
-    {"id":"uniq-id-8","title":"card 8","front":"front of card 8","back":"back of card 8","tags":["list","of","tags"],"decks":["a","list"]},
-    {"id":"uniq-id-9","title":"card 9","front":"front of card 9","back":"back of card 9","tags":["list","of","tags"],"decks":["a","list"]}]}""";
-
-  Deck _deck = new Deck.fromJsonString(testDeck);
   List<FlashCard> _cardList;
-  FlashCard _activeCard;
   int _activeCardIdx = 0;
-  int _totalCardCt;
-  Icon _thisIcon;
+  int _totalCardCt = 0;
 
   @override
   initState() {
     super.initState();
-    _cardList = _deck.getCards();
-    _activeCard = _cardList[_activeCardIdx];
-    _cardToShow = _activeCard.toWidget(sideToDisplay: _shownSide);
-    _totalCardCt = _cardList.length;
+    grabCardsAndDisplay();
+  }
+
+  Future<void> buildFakeData() async {
+    Deck newDeck = new Deck(id: 6, title: "A sick deck");
+    Deck newDeck2 = new Deck(id: 4, title: "A sick deck");
+    await DBProvider.db.insertDeck(newDeck);
+    await DBProvider.db.insertDeck(newDeck2);
+    var futures = <Future>[];
+    new List<int>.generate(10, (i) {
+      FlashCard thisCard = new FlashCard(
+          id: i, title: "test card $i", front: "$i front", back: "$i back");
+      futures.add(DBProvider.db.insertFlashCard(thisCard));
+      futures.add(
+          DBProvider.db.insertDeckToFlashCard(deck: newDeck, card: thisCard));
+      futures.add(
+          DBProvider.db.insertDeckToFlashCard(deck: newDeck, card: thisCard));
+    });
+    await Future.wait(futures);
+  }
+
+  void grabCardsAndDisplay() async {
+    // await buildFakeData();
+    // List<Deck> _deckList = await DBProvider.db.getAllDecks();
+    // print(_deckList);
+    _cardList = await DBProvider.db.getAllFlashCardsForDeck(deckId: 6);
+    setState(() {
+      _cardList = _cardList;
+      _totalCardCt = _cardList.length;
+    });
   }
 
   void _flipCard() {
     setState(() {
       if (_shownSide == FlashCardSide.front) {
         _shownSide = FlashCardSide.back;
-        _thisIcon = flipToBack;
       } else {
         _shownSide = FlashCardSide.front;
-        _thisIcon = flipToFront;
       }
     });
   }
@@ -98,17 +103,21 @@ class _MyHomePageState extends State<MyHomePage> {
     });
   }
 
-  @override
-  Widget build(BuildContext context) {
-    _activeCard = _cardList[_activeCardIdx];
-    _cardToShow = _activeCard.toWidget(sideToDisplay: _shownSide);
-    return Scaffold(
-      body: new Center(
-          child: new GestureDetector(
-        child: _cardToShow,
-        onTap: _flipCard,
-      )),
-      bottomNavigationBar: new ButtonBar(
+  Widget safeCard() {
+    if (_cardList != null &&
+        _activeCardIdx >= 0 &&
+        _activeCardIdx < _cardList.length) {
+      return _cardList[_activeCardIdx].toWidget(sideToDisplay: _shownSide);
+    } else {
+      return CircularProgressIndicator();
+    }
+  }
+
+  Widget buildCardNavigation() {
+    if (_cardList != null &&
+        _activeCardIdx >= 0 &&
+        _activeCardIdx < _cardList.length) {
+      return ButtonBar(
         mainAxisSize: MainAxisSize.min,
         alignment: MainAxisAlignment.center,
         children: <Widget>[
@@ -124,7 +133,21 @@ class _MyHomePageState extends State<MyHomePage> {
             onPressed: _canGoForward() == true ? _handleForwardPress : null,
           ),
         ],
-      ),
+      );
+    } else {
+      return null;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: new Center(
+          child: new GestureDetector(
+        child: safeCard(),
+        onTap: _flipCard,
+      )),
+      bottomNavigationBar: buildCardNavigation(),
     );
   }
 }
