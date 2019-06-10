@@ -53,7 +53,7 @@ class DBProvider {
     });
   }
 
-  getFlashCard({String flashCardId}) async {
+  Future<FlashCard> getFlashCard({String flashCardId}) async {
     final db = await database;
     var res =
         await db.query("FlashCard", where: "id = ?", whereArgs: [flashCardId]);
@@ -83,21 +83,26 @@ class DBProvider {
         [deck.id, card.id]);
   }
 
-  Future<void> insertDeck(Deck deck) async {
+  Future<void> insertDeckToFlashCardById({int deckId, int cardId}) async {
+    final Database db = await database;
+    await db.rawInsert(
+        "INSERT OR IGNORE INTO DeckToFlashCard (deckId, flashCardId) VALUES(?, ?)",
+        [deckId, cardId]);
+  }
+
+  Future<int> insertDeck(Deck deck) async {
     return await insertEntity(kind: "Deck", values: deck.toMap());
   }
 
-  Future<void> insertFlashCard(FlashCard card) async {
+  Future<int> insertFlashCard(FlashCard card) async {
     return await insertEntity(kind: "FlashCard", values: card.toMap());
   }
 
   Future<List<Deck>> getAllDecks() async {
     final db = await database;
     var res = await db.query("Deck");
-    print(res);
     List<Deck> list = res.isNotEmpty
         ? res.map((c) {
-            print(c);
             return Deck.fromMap(c);
           }).toList()
         : [];
@@ -124,16 +129,16 @@ class DBProvider {
     return flashCardList;
   }
 
-  deleteById({String entity, String id}) async {
+  Future<void> deleteById({String entity, String id}) async {
     final db = await database;
     return db.delete(entity, where: "id = ?", whereArgs: [id]);
   }
 
-  deleteFlashCard(String flashCardId) async {
+  Future<void> deleteFlashCard(String flashCardId) async {
     return await deleteById(entity: "FlashCard", id: flashCardId);
   }
 
-  deleteDeck(String deckId) async {
+  Future<void> deleteDeck(String deckId) async {
     return await deleteById(entity: "Deck", id: deckId);
   }
 }
