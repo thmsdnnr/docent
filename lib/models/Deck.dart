@@ -7,7 +7,7 @@ class Deck {
   List<int> tags;
 
   String toString() {
-    return "$id ${cards.toString()}";
+    return "$id $title";
   }
 
   factory Deck.fromMap(Map<String, dynamic> json) => new Deck(
