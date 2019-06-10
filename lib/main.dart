@@ -1,3 +1,4 @@
+import 'package:docent/ImportFromURL.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import "./database.dart";
@@ -6,6 +7,7 @@ import './models/Deck.dart';
 
 import './CardEditor.dart';
 import './DeckSelector.dart';
+import './ImportFromURL.dart';
 
 void main() => runApp(MyApp());
 
@@ -24,6 +26,7 @@ class MyApp extends StatelessWidget {
       routes: {
         CardEditor.routeName: (context) => CardEditor(),
         DeckSelector.routeName: (context) => DeckSelector(),
+        ImportFromURL.routeName: (context) => ImportFromURL(),
       },
     );
   }
@@ -69,15 +72,14 @@ class _MyHomePageState extends State<MyHomePage> {
     await Future.wait(futures);
   }
 
-  void grabCardsAndDisplay({DeckPosition startAt}) async {
-    // await buildFakeData();
-    // List<Deck> _deckList = await DBProvider.db.getAllDecks();
-    // print(_deckList);
-    _cardList = await DBProvider.db.getAllFlashCardsForDeck(
-        deckId: _chosenDeck != null ? _chosenDeck.id : 0);
+  void grabCardsAndDisplay({int deckId, DeckPosition startAt}) async {
+    List<FlashCard> thisCardList = await DBProvider.db
+        .getAllFlashCardsForDeck(deckId: deckId != null ? deckId : 0);
+    Deck thisDeck = await DBProvider.db.getDeck(deckId: deckId);
     setState(() {
-      _cardList = _cardList;
+      _cardList = thisCardList;
       _totalCardCt = _cardList.length;
+      _chosenDeck = thisDeck;
       if (startAt == DeckPosition.Last) {
         _activeCardIdx = _cardList.length - 1;
       }
@@ -157,7 +159,7 @@ class _MyHomePageState extends State<MyHomePage> {
         await Navigator.of(context).pushNamed(DeckSelector.routeName);
     setState(() {
       _chosenDeck = selectedDeck;
-      grabCardsAndDisplay();
+      grabCardsAndDisplay(deckId: _chosenDeck.id);
     });
   }
 
@@ -165,11 +167,21 @@ class _MyHomePageState extends State<MyHomePage> {
     dynamic createdCard = await Navigator.of(context).pushNamed(
         CardEditor.routeName,
         arguments: ScreenArguments(currentDeck: _chosenDeck));
-    print("Created $createdCard");
     if (createdCard != null && createdCard["deckId"] != null) {
       setState(() {
         _chosenDeck = createdCard["deckId"];
-        grabCardsAndDisplay(startAt: DeckPosition.Last);
+        grabCardsAndDisplay(deckId: _chosenDeck.id, startAt: DeckPosition.Last);
+      });
+    }
+  }
+
+  Future importFromURL(BuildContext context) async {
+    dynamic createdDeckId =
+        await Navigator.of(context).pushNamed(ImportFromURL.routeName);
+    int theId = createdDeckId["deckId"];
+    if (theId != null) {
+      setState(() {
+        grabCardsAndDisplay(deckId: theId);
       });
     }
   }
@@ -228,6 +240,14 @@ class _MyHomePageState extends State<MyHomePage> {
           onTap: () async {
             Navigator.pop(context); // close the drawer before navigating away
             await chooseAnotherDeck(context);
+          },
+        ),
+        ListTile(
+          title: Text("Import From URL"),
+          trailing: Icon(Icons.arrow_forward),
+          onTap: () async {
+            Navigator.pop(context); // close the drawer before navigating away
+            await importFromURL(context);
           },
         ),
       ])),
