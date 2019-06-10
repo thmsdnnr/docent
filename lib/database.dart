@@ -60,7 +60,7 @@ class DBProvider {
     return res.isNotEmpty ? FlashCard.fromMap(res.first) : null;
   }
 
-  Future<Deck> getDeck({String deckId}) async {
+  Future<Deck> getDeck({int deckId}) async {
     final db = await database;
     var res = await db.query("Deck", where: "id = ?", whereArgs: [deckId]);
     return res.isNotEmpty ? Deck.fromMap(res.first) : null;
