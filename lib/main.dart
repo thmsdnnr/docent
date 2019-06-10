@@ -4,7 +4,12 @@ import "./database.dart";
 import './models/FlashCard.dart';
 import './models/Deck.dart';
 
+import './CardEditor.dart';
+import './DeckSelector.dart';
+
 void main() => runApp(MyApp());
+
+enum DeckPosition { First, Last }
 
 class MyApp extends StatelessWidget {
   // This widget is the root of your application.
@@ -16,6 +21,10 @@ class MyApp extends StatelessWidget {
         primarySwatch: Colors.blue,
       ),
       home: MyHomePage(title: 'Flutter Demo Home Page'),
+      routes: {
+        CardEditor.routeName: (context) => CardEditor(),
+        DeckSelector.routeName: (context) => DeckSelector(),
+      },
     );
   }
 }
@@ -34,6 +43,7 @@ class _MyHomePageState extends State<MyHomePage> {
   List<FlashCard> _cardList;
   int _activeCardIdx = 0;
   int _totalCardCt = 0;
+  Deck _chosenDeck;
 
   @override
   initState() {
@@ -59,14 +69,18 @@ class _MyHomePageState extends State<MyHomePage> {
     await Future.wait(futures);
   }
 
-  void grabCardsAndDisplay() async {
+  void grabCardsAndDisplay({DeckPosition startAt}) async {
     // await buildFakeData();
     // List<Deck> _deckList = await DBProvider.db.getAllDecks();
     // print(_deckList);
-    _cardList = await DBProvider.db.getAllFlashCardsForDeck(deckId: 6);
+    _cardList = await DBProvider.db.getAllFlashCardsForDeck(
+        deckId: _chosenDeck != null ? _chosenDeck.id : 0);
     setState(() {
       _cardList = _cardList;
       _totalCardCt = _cardList.length;
+      if (startAt == DeckPosition.Last) {
+        _activeCardIdx = _cardList.length - 1;
+      }
     });
   }
 
@@ -103,13 +117,60 @@ class _MyHomePageState extends State<MyHomePage> {
     });
   }
 
-  Widget safeCard() {
+  Card buildNiceTextBox(textColumn) => Card(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [Padding(padding: EdgeInsets.all(48), child: textColumn)],
+        ),
+      );
+
+  Widget safeCard(BuildContext context) {
     if (_cardList != null &&
         _activeCardIdx >= 0 &&
         _activeCardIdx < _cardList.length) {
       return _cardList[_activeCardIdx].toWidget(sideToDisplay: _shownSide);
     } else {
-      return CircularProgressIndicator();
+      Widget textColumn = Column(children: <Widget>[
+        Text("No cards available.",
+            textAlign: TextAlign.center, style: TextStyle(fontSize: 24)),
+        RaisedButton(
+            child: Text("Choose another deck"),
+            onPressed: () async {
+              // Navigator.navgiate
+              await chooseAnotherDeck(context);
+            }),
+        RaisedButton(
+            child: Text("Create a card!"),
+            onPressed: () async {
+              await createACard(context);
+            })
+      ]);
+      return buildNiceTextBox(textColumn);
+    }
+  }
+
+  Future chooseAnotherDeck(BuildContext context) async {
+    // grab the deck the users selects when the page returns
+    dynamic selectedDeck =
+        await Navigator.of(context).pushNamed(DeckSelector.routeName);
+    setState(() {
+      _chosenDeck = selectedDeck;
+      grabCardsAndDisplay();
+    });
+  }
+
+  Future createACard(BuildContext context) async {
+    dynamic createdCard = await Navigator.of(context).pushNamed(
+        CardEditor.routeName,
+        arguments: ScreenArguments(currentDeck: _chosenDeck));
+    print("Created $createdCard");
+    if (createdCard != null && createdCard["deckId"] != null) {
+      setState(() {
+        _chosenDeck = createdCard["deckId"];
+        grabCardsAndDisplay(startAt: DeckPosition.Last);
+      });
     }
   }
 
@@ -142,12 +203,34 @@ class _MyHomePageState extends State<MyHomePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: AppBar(
+        title: Text(_chosenDeck != null ? _chosenDeck.title : ""),
+        backgroundColor: Colors.orangeAccent,
+      ),
       body: new Center(
           child: new GestureDetector(
-        child: safeCard(),
+        child: safeCard(context),
         onTap: _flipCard,
       )),
       bottomNavigationBar: buildCardNavigation(),
+      drawer: Drawer(
+          child: ListView(children: <Widget>[
+        ListTile(
+            title: Text("Add New Card"),
+            trailing: Icon(Icons.arrow_forward),
+            onTap: () async {
+              Navigator.pop(context); // close the drawer before navigating away
+              await createACard(context);
+            }),
+        ListTile(
+          title: Text("Choose A Deck"),
+          trailing: Icon(Icons.arrow_forward),
+          onTap: () async {
+            Navigator.pop(context); // close the drawer before navigating away
+            await chooseAnotherDeck(context);
+          },
+        ),
+      ])),
     );
   }
 }
