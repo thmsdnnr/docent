@@ -6,6 +6,7 @@ import 'package:sqflite/sqflite.dart';
 // Models
 import './models/FlashCard.dart';
 import './models/Deck.dart';
+import './models/Grade.dart';
 
 import 'package:path/path.dart';
 import 'package:path_provider/path_provider.dart';
@@ -31,12 +32,22 @@ class DBProvider {
         onCreate: (Database db, int version) {}, onOpen: (Database db) async {
       // await db.execute("DROP TABLE FlashCard");
       // await db.execute("DROP TABLE Deck");
+      // await db.execute("DROP TABLE Grade");
       // await db.execute("DROP TABLE DeckToFlashCard");
       await db.execute("CREATE TABLE IF NOT EXISTS FlashCard ("
           "id INTEGER PRIMARY KEY,"
           "title TEXT,"
           "front TEXT,"
           "back TEXT"
+          ")");
+      await db.execute("CREATE TABLE IF NOT EXISTS Grade ("
+          "id INTEGER PRIMARY KEY,"
+          "flashCardId INTEGER,"
+          "reps INTEGER,"
+          "easiness REAL,"
+          "interval INTEGER,"
+          "nextPracticeTimestamp INTEGER,"
+          "FOREIGN KEY(flashCardId) REFERENCES FlashCard(id)"
           ")");
       await db.execute("CREATE TABLE IF NOT EXISTS Deck ("
           "id INTEGER PRIMARY KEY,"
@@ -66,6 +77,13 @@ class DBProvider {
     return res.isNotEmpty ? Deck.fromMap(res.first) : null;
   }
 
+  Future<Grade> getGrade({int flashCardId}) async {
+    final db = await database;
+    var res = await db
+        .query("Grade", where: "flashCardId = ?", whereArgs: [flashCardId]);
+    return res.isNotEmpty ? Grade.fromMap(res.first) : null;
+  }
+
   Future<int> insertEntity({String kind, Map<String, dynamic> values}) async {
     final Database db = await database;
     int recordId = await db.insert(
@@ -74,6 +92,10 @@ class DBProvider {
       conflictAlgorithm: ConflictAlgorithm.replace,
     );
     return recordId;
+  }
+
+  Future<int> insertGrade({Grade grade}) async {
+    return await insertEntity(kind: "Grade", values: grade.toMap());
   }
 
   Future<void> insertDeckToFlashCard({Deck deck, FlashCard card}) async {
@@ -95,7 +117,14 @@ class DBProvider {
   }
 
   Future<int> insertFlashCard(FlashCard card) async {
-    return await insertEntity(kind: "FlashCard", values: card.toMap());
+    int newFlashCardId =
+        await insertEntity(kind: "FlashCard", values: card.toMap());
+    return await setDefaultGradeForFlashCard(flashCardId: newFlashCardId);
+  }
+
+  Future<int> setDefaultGradeForFlashCard({int flashCardId}) async {
+    Grade defaultGrade = new Grade(flashCardId: flashCardId);
+    return await insertEntity(kind: "Grade", values: defaultGrade.toMap());
   }
 
   Future<List<Deck>> getAllDecks() async {
