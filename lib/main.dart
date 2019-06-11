@@ -4,6 +4,7 @@ import 'package:flutter/rendering.dart';
 import "./database.dart";
 import './models/FlashCard.dart';
 import './models/Deck.dart';
+import './models/Grade.dart';
 
 import './CardEditor.dart';
 import './DeckSelector.dart';
@@ -48,6 +49,7 @@ class _MyHomePageState extends State<MyHomePage> {
   int _totalCardCt = 0;
   int _cardGrade = -1;
   Deck _chosenDeck;
+  Card _chosenCard;
   PageController controller;
 
   static final FlashCardSide BackSideOfCard = FlashCardSide.back;
@@ -301,10 +303,23 @@ class _MyHomePageState extends State<MyHomePage> {
           itemBuilder: (BuildContext context, int index) {
             return safeCard(context, index);
           },
-          onPageChanged: (int pageIdx) {
+          onPageChanged: (int pageIdx) async {
+            int thisCardId = _cardList[_activeCardIdx].id;
+            if (_cardGrade != null && _cardGrade != -1) {
+              // the user assigned a card grade, so save it!
+              Grade thisGrade =
+                  await DBProvider.db.getGrade(flashCardId: thisCardId);
+              if (thisGrade != null) {
+                await DBProvider.db.insertGrade(
+                    grade: thisGrade.updateGradeWithQuality(_cardGrade));
+              } else {
+                // if there's no grade entry, create a default one for next time.
+                await DBProvider.db
+                    .setDefaultGradeForFlashCard(flashCardId: thisCardId);
+              }
+            }
             setState(() {
               _activeCardIdx = pageIdx;
-              print("TODO: save the card grade in the db!");
               _cardGrade = -1;
               _shownSide = FlashCardSide.front;
             });
