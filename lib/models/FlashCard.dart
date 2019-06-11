@@ -1,5 +1,3 @@
-import 'package:flutter/material.dart';
-
 enum FlashCardSide { front, back }
 
 class FlashCard {
