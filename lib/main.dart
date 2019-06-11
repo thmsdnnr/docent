@@ -157,10 +157,12 @@ class _MyHomePageState extends State<MyHomePage> {
     // grab the deck the users selects when the page returns
     dynamic selectedDeck =
         await Navigator.of(context).pushNamed(DeckSelector.routeName);
-    setState(() {
-      _chosenDeck = selectedDeck;
-      grabCardsAndDisplay(deckId: _chosenDeck.id);
-    });
+    if (selectedDeck != null && selectedDeck.id != null) {
+      setState(() {
+        _chosenDeck = selectedDeck;
+        grabCardsAndDisplay(deckId: _chosenDeck.id);
+      });
+    }
   }
 
   Future createACard(BuildContext context) async {
@@ -178,10 +180,9 @@ class _MyHomePageState extends State<MyHomePage> {
   Future importFromURL(BuildContext context) async {
     dynamic createdDeckId =
         await Navigator.of(context).pushNamed(ImportFromURL.routeName);
-    int theId = createdDeckId["deckId"];
-    if (theId != null) {
+    if (createdDeckId != null && createdDeckId["deckId"] != null) {
       setState(() {
-        grabCardsAndDisplay(deckId: theId);
+        grabCardsAndDisplay(deckId: createdDeckId["deckId"]);
       });
     }
   }
