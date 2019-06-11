@@ -46,8 +46,11 @@ class _MyHomePageState extends State<MyHomePage> {
   List<FlashCard> _cardList;
   int _activeCardIdx = 0;
   int _totalCardCt = 0;
+  int _cardGrade = -1;
   Deck _chosenDeck;
   PageController controller;
+
+  static final FlashCardSide BackSideOfCard = FlashCardSide.back;
 
   @override
   initState() {
@@ -121,6 +124,61 @@ class _MyHomePageState extends State<MyHomePage> {
     });
   }
 
+  FractionallySizedBox cardToWidget(
+      {BuildContext context, FlashCardSide sideToDisplay, FlashCard card}) {
+    EdgeInsets contentPadding = EdgeInsets.all(24.0);
+    // Pad out the top of the card more if we are displying the rating row at bottom.
+    if (sideToDisplay == BackSideOfCard) {
+      contentPadding = EdgeInsets.fromLTRB(24.0, 48.0, 24.0, 0);
+    }
+    List<Widget> childList = [
+      Expanded(
+          flex: 1,
+          child: Center(
+            child: SingleChildScrollView(
+                padding: contentPadding,
+                child: Text(
+                  sideToDisplay == FlashCardSide.front ? card.front : card.back,
+                  style: TextStyle(fontWeight: FontWeight.w500, fontSize: 32),
+                  textAlign: TextAlign.center,
+                )),
+          ))
+    ];
+    if (sideToDisplay == BackSideOfCard) {
+      childList.add(Wrap(
+          spacing: 8.0,
+          children: List<Widget>.generate(
+            6,
+            (int index) {
+              return ChoiceChip(
+                backgroundColor: Colors.cyan.shade100,
+                selectedColor: Colors.orange,
+                // shape: StadiumBorder(side: BorderSide()),
+                selected: index == _cardGrade,
+                label: Text("$index",
+                    style: TextStyle(fontSize: 20, color: Colors.black)),
+                onSelected: (bool selected) {
+                  setState(() {
+                    _cardGrade = selected ? index : null;
+                  });
+                },
+              );
+            },
+          ).toList()));
+    }
+    return FractionallySizedBox(
+      widthFactor: 0.9,
+      heightFactor: 0.9,
+      child: Card(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: childList,
+        ),
+      ),
+    );
+  }
+
   Card buildNiceTextBox(textColumn) => Card(
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -135,7 +193,10 @@ class _MyHomePageState extends State<MyHomePage> {
         _activeCardIdx >= 0 &&
         _activeCardIdx < _cardList.length) {
       return GestureDetector(
-        child: _cardList[index].toWidget(sideToDisplay: _shownSide),
+        child: cardToWidget(
+            context: context,
+            sideToDisplay: _shownSide,
+            card: _cardList[index]),
         onTap: () => _flipCard(),
       );
     } else {
@@ -232,9 +293,9 @@ class _MyHomePageState extends State<MyHomePage> {
         title: Text(buildCardTitle()),
         backgroundColor: Colors.orangeAccent,
       ),
-      body: new Center(
+      body: Center(
         child: PageView.builder(
-          physics: new AlwaysScrollableScrollPhysics(),
+          physics: AlwaysScrollableScrollPhysics(),
           controller: controller,
           itemCount: _cardList != null ? _cardList.length : 0,
           itemBuilder: (BuildContext context, int index) {
@@ -243,6 +304,9 @@ class _MyHomePageState extends State<MyHomePage> {
           onPageChanged: (int pageIdx) {
             setState(() {
               _activeCardIdx = pageIdx;
+              print("TODO: save the card grade in the db!");
+              _cardGrade = -1;
+              _shownSide = FlashCardSide.front;
             });
           },
         ),
