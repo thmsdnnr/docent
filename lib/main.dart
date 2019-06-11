@@ -47,6 +47,7 @@ class _MyHomePageState extends State<MyHomePage> {
   int _activeCardIdx = 0;
   int _totalCardCt = 0;
   Deck _chosenDeck;
+  PageController controller;
 
   @override
   initState() {
@@ -75,7 +76,8 @@ class _MyHomePageState extends State<MyHomePage> {
   void grabCardsAndDisplay({int deckId, DeckPosition startAt}) async {
     List<FlashCard> thisCardList = await DBProvider.db
         .getAllFlashCardsForDeck(deckId: deckId != null ? deckId : 0);
-    Deck thisDeck = await DBProvider.db.getDeck(deckId: deckId);
+    Deck thisDeck =
+        await DBProvider.db.getDeck(deckId: deckId != null ? deckId : 0);
     setState(() {
       _cardList = thisCardList;
       _totalCardCt = _cardList.length;
@@ -128,11 +130,14 @@ class _MyHomePageState extends State<MyHomePage> {
         ),
       );
 
-  Widget safeCard(BuildContext context) {
+  Widget safeCard(BuildContext context, int index) {
     if (_cardList != null &&
         _activeCardIdx >= 0 &&
         _activeCardIdx < _cardList.length) {
-      return _cardList[_activeCardIdx].toWidget(sideToDisplay: _shownSide);
+      return GestureDetector(
+        child: _cardList[index].toWidget(sideToDisplay: _shownSide),
+        onTap: () => _flipCard(),
+      );
     } else {
       Widget textColumn = Column(children: <Widget>[
         Text("No cards available.",
@@ -140,7 +145,6 @@ class _MyHomePageState extends State<MyHomePage> {
         RaisedButton(
             child: Text("Choose another deck"),
             onPressed: () async {
-              // Navigator.navgiate
               await chooseAnotherDeck(context);
             }),
         RaisedButton(
@@ -213,19 +217,36 @@ class _MyHomePageState extends State<MyHomePage> {
     }
   }
 
+  String buildCardTitle() {
+    String title = "";
+    if (_chosenDeck?.title != null) {
+      title = "${_chosenDeck.title} ${_activeCardIdx + 1} / $_totalCardCt";
+    }
+    return title;
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(_chosenDeck != null ? _chosenDeck.title : ""),
+        title: Text(buildCardTitle()),
         backgroundColor: Colors.orangeAccent,
       ),
       body: new Center(
-          child: new GestureDetector(
-        child: safeCard(context),
-        onTap: _flipCard,
-      )),
-      bottomNavigationBar: buildCardNavigation(),
+        child: PageView.builder(
+          physics: new AlwaysScrollableScrollPhysics(),
+          controller: controller,
+          itemCount: _cardList != null ? _cardList.length : 0,
+          itemBuilder: (BuildContext context, int index) {
+            return safeCard(context, index);
+          },
+          onPageChanged: (int pageIdx) {
+            setState(() {
+              _activeCardIdx = pageIdx;
+            });
+          },
+        ),
+      ),
       drawer: Drawer(
           child: ListView(children: <Widget>[
         ListTile(

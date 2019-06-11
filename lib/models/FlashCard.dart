@@ -30,8 +30,8 @@ class FlashCard {
 
   FractionallySizedBox toWidget({FlashCardSide sideToDisplay}) =>
       FractionallySizedBox(
-        widthFactor: 0.8,
-        heightFactor: 0.8,
+        widthFactor: 0.9,
+        heightFactor: 0.9,
         child: Card(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
