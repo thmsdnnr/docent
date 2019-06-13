@@ -6,9 +6,14 @@ import './models/FlashCard.dart';
 import './models/Deck.dart';
 import './models/Grade.dart';
 
+import './models/FlashCardDisplayer.dart';
+
 import './CardEditor.dart';
+import './DeckEditor.dart';
 import './DeckSelector.dart';
 import './ImportFromURL.dart';
+
+import "dart:math";
 
 void main() => runApp(MyApp());
 
@@ -26,6 +31,7 @@ class MyApp extends StatelessWidget {
       home: MyHomePage(title: 'Flutter Demo Home Page'),
       routes: {
         CardEditor.routeName: (context) => CardEditor(),
+        DeckEditor.routeName: (context) => DeckEditor(),
         DeckSelector.routeName: (context) => DeckSelector(),
         ImportFromURL.routeName: (context) => ImportFromURL(),
       },
@@ -42,21 +48,31 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  FlashCardSide _shownSide = FlashCardSide.front;
-
   List<FlashCard> _cardList;
+  List<int> _indexArr = [];
   int _activeCardIdx = 0;
+  int _pageIdx = 0;
   int _totalCardCt = 0;
   int _cardGrade = -1;
   Deck _chosenDeck;
   PageController controller;
 
-  static final FlashCardSide BackSideOfCard = FlashCardSide.back;
-
   @override
   initState() {
     super.initState();
     grabCardsAndDisplay();
+  }
+
+  List<int> fischerYates(n) {
+    List numList = List<int>.generate(n, (index) => index);
+    var R = new Random();
+    for (int i = 0; i < numList.length - 2; i++) {
+      int j = R.nextInt(numList.length - 1);
+      int temp = numList[j];
+      numList[j] = numList[i];
+      numList[i] = temp;
+    }
+    return numList;
   }
 
   void grabCardsAndDisplay({int deckId, DeckPosition startAt}) async {
@@ -67,76 +83,12 @@ class _MyHomePageState extends State<MyHomePage> {
     setState(() {
       _cardList = thisCardList;
       _totalCardCt = _cardList.length;
+      _indexArr = fischerYates(_cardList.length);
       _chosenDeck = thisDeck;
       if (startAt == DeckPosition.Last) {
         _activeCardIdx = _cardList.length - 1;
       }
     });
-  }
-
-  void _flipCard() {
-    setState(() {
-      if (_shownSide == FlashCardSide.front) {
-        _shownSide = FlashCardSide.back;
-      } else {
-        _shownSide = FlashCardSide.front;
-      }
-    });
-  }
-
-  FractionallySizedBox cardToWidget(
-      {BuildContext context, FlashCardSide sideToDisplay, FlashCard card}) {
-    EdgeInsets contentPadding = EdgeInsets.all(24.0);
-    // Pad out the top of the card more if we are displying the rating row at bottom.
-    if (sideToDisplay == BackSideOfCard) {
-      contentPadding = EdgeInsets.fromLTRB(24.0, 48.0, 24.0, 0);
-    }
-    List<Widget> childList = [
-      Expanded(
-          flex: 1,
-          child: Center(
-            child: SingleChildScrollView(
-                padding: contentPadding,
-                child: Text(
-                  sideToDisplay == FlashCardSide.front ? card.front : card.back,
-                  style: TextStyle(fontWeight: FontWeight.w500, fontSize: 32),
-                  textAlign: TextAlign.center,
-                )),
-          ))
-    ];
-    if (sideToDisplay == BackSideOfCard) {
-      childList.add(Wrap(
-          spacing: 8.0,
-          children: List<Widget>.generate(
-            6,
-            (int index) {
-              return ChoiceChip(
-                backgroundColor: Colors.cyan.shade100,
-                selectedColor: Colors.orange,
-                // shape: StadiumBorder(side: BorderSide()),
-                selected: index == _cardGrade,
-                label: Text("$index",
-                    style: TextStyle(fontSize: 20, color: Colors.black)),
-                onSelected: (bool selected) {
-                  setState(() {
-                    _cardGrade = selected ? index : null;
-                  });
-                },
-              );
-            },
-          ).toList()));
-    }
-    return FractionallySizedBox(
-      widthFactor: 0.9,
-      heightFactor: 0.9,
-      child: Card(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: childList,
-        ),
-      ),
-    );
   }
 
   Card buildNiceTextBox(textColumn) => Card(
@@ -152,13 +104,7 @@ class _MyHomePageState extends State<MyHomePage> {
     if (_cardList != null &&
         _activeCardIdx >= 0 &&
         _activeCardIdx < _cardList.length) {
-      return GestureDetector(
-        child: cardToWidget(
-            context: context,
-            sideToDisplay: _shownSide,
-            card: _cardList[index]),
-        onTap: () => _flipCard(),
-      );
+      return FlashCardDisplayer(flashCard: _cardList[index]);
     } else {
       Widget textColumn = Column(children: <Widget>[
         Text("No cards available.",
@@ -202,6 +148,17 @@ class _MyHomePageState extends State<MyHomePage> {
     }
   }
 
+  Future createADeck(BuildContext context) async {
+    dynamic createdDeck = await Navigator.of(context).pushNamed(
+        DeckEditor.routeName,
+        arguments: ScreenArguments(currentDeck: _chosenDeck));
+    if (createdDeck != null && createdDeck["deckId"] != null) {
+      setState(() {
+        grabCardsAndDisplay(deckId: createdDeck["deckId"]);
+      });
+    }
+  }
+
   Future importFromURL(BuildContext context) async {
     dynamic createdDeckId =
         await Navigator.of(context).pushNamed(ImportFromURL.routeName);
@@ -215,7 +172,11 @@ class _MyHomePageState extends State<MyHomePage> {
   String buildCardTitle() {
     String title = "";
     if (_chosenDeck?.title != null) {
-      title = "${_chosenDeck.title} ${_activeCardIdx + 1} / $_totalCardCt";
+      if (_totalCardCt > 0) {
+        title = "${_chosenDeck.title} ${_pageIdx + 1} / $_totalCardCt";
+      } else {
+        title = "${_chosenDeck.title} (0 / 0)";
+      }
     }
     return title;
   }
@@ -231,9 +192,9 @@ class _MyHomePageState extends State<MyHomePage> {
         child: PageView.builder(
           physics: AlwaysScrollableScrollPhysics(),
           controller: controller,
-          itemCount: _cardList != null ? _cardList.length : 0,
+          itemCount: _indexArr != null ? _indexArr.length : 0,
           itemBuilder: (BuildContext context, int index) {
-            return safeCard(context, index);
+            return safeCard(context, _indexArr[index]);
           },
           onPageChanged: (int pageIdx) async {
             int thisCardId = _cardList[_activeCardIdx].id;
@@ -251,9 +212,9 @@ class _MyHomePageState extends State<MyHomePage> {
               }
             }
             setState(() {
-              _activeCardIdx = pageIdx;
+              _activeCardIdx = _indexArr[pageIdx];
+              _pageIdx = pageIdx;
               _cardGrade = -1;
-              _shownSide = FlashCardSide.front;
             });
           },
         ),
@@ -266,6 +227,13 @@ class _MyHomePageState extends State<MyHomePage> {
             onTap: () async {
               Navigator.pop(context); // close the drawer before navigating away
               await createACard(context);
+            }),
+        ListTile(
+            title: Text("Add New Deck"),
+            trailing: Icon(Icons.arrow_forward),
+            onTap: () async {
+              Navigator.pop(context); // close the drawer before navigating away
+              await createADeck(context);
             }),
         ListTile(
           title: Text("Choose A Deck"),
