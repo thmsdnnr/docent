@@ -49,7 +49,7 @@ class _FlashCardDisplayerState extends State<FlashCardDisplayer> {
                   sideToDisplay == FlashCardSide.front
                       ? widget.flashCard.front
                       : widget.flashCard.back,
-                  style: TextStyle(fontWeight: FontWeight.w500, fontSize: 32),
+                  style: TextStyle(fontWeight: FontWeight.w300, fontSize: 20),
                   textAlign: TextAlign.center,
                 )),
           ))
