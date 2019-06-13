@@ -13,6 +13,8 @@ import './DeckEditor.dart';
 import './DeckSelector.dart';
 import './ImportFromURL.dart';
 
+import "dart:math";
+
 void main() => runApp(MyApp());
 
 enum DeckPosition { First, Last }
@@ -47,7 +49,9 @@ class MyHomePage extends StatefulWidget {
 
 class _MyHomePageState extends State<MyHomePage> {
   List<FlashCard> _cardList;
+  List<int> _indexArr = [];
   int _activeCardIdx = 0;
+  int _pageIdx = 0;
   int _totalCardCt = 0;
   int _cardGrade = -1;
   Deck _chosenDeck;
@@ -59,6 +63,18 @@ class _MyHomePageState extends State<MyHomePage> {
     grabCardsAndDisplay();
   }
 
+  List<int> fischerYates(n) {
+    List numList = List<int>.generate(n, (index) => index);
+    var R = new Random();
+    for (int i = 0; i < numList.length - 2; i++) {
+      int j = R.nextInt(numList.length - 1);
+      int temp = numList[j];
+      numList[j] = numList[i];
+      numList[i] = temp;
+    }
+    return numList;
+  }
+
   void grabCardsAndDisplay({int deckId, DeckPosition startAt}) async {
     List<FlashCard> thisCardList = await DBProvider.db
         .getAllFlashCardsForDeck(deckId: deckId != null ? deckId : 0);
@@ -67,6 +83,7 @@ class _MyHomePageState extends State<MyHomePage> {
     setState(() {
       _cardList = thisCardList;
       _totalCardCt = _cardList.length;
+      _indexArr = fischerYates(_cardList.length);
       _chosenDeck = thisDeck;
       if (startAt == DeckPosition.Last) {
         _activeCardIdx = _cardList.length - 1;
@@ -156,7 +173,7 @@ class _MyHomePageState extends State<MyHomePage> {
     String title = "";
     if (_chosenDeck?.title != null) {
       if (_totalCardCt > 0) {
-        title = "${_chosenDeck.title} ${_activeCardIdx + 1} / $_totalCardCt";
+        title = "${_chosenDeck.title} ${_pageIdx + 1} / $_totalCardCt";
       } else {
         title = "${_chosenDeck.title} (0 / 0)";
       }
@@ -175,9 +192,9 @@ class _MyHomePageState extends State<MyHomePage> {
         child: PageView.builder(
           physics: AlwaysScrollableScrollPhysics(),
           controller: controller,
-          itemCount: _cardList != null ? _cardList.length : 0,
+          itemCount: _indexArr != null ? _indexArr.length : 0,
           itemBuilder: (BuildContext context, int index) {
-            return safeCard(context, index);
+            return safeCard(context, _indexArr[index]);
           },
           onPageChanged: (int pageIdx) async {
             int thisCardId = _cardList[_activeCardIdx].id;
@@ -195,7 +212,8 @@ class _MyHomePageState extends State<MyHomePage> {
               }
             }
             setState(() {
-              _activeCardIdx = pageIdx;
+              _activeCardIdx = _indexArr[pageIdx];
+              _pageIdx = pageIdx;
               _cardGrade = -1;
             });
           },
