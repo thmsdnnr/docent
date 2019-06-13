@@ -9,6 +9,7 @@ import './models/Grade.dart';
 import './models/FlashCardDisplayer.dart';
 
 import './CardEditor.dart';
+import './DeckEditor.dart';
 import './DeckSelector.dart';
 import './ImportFromURL.dart';
 
@@ -28,6 +29,7 @@ class MyApp extends StatelessWidget {
       home: MyHomePage(title: 'Flutter Demo Home Page'),
       routes: {
         CardEditor.routeName: (context) => CardEditor(),
+        DeckEditor.routeName: (context) => DeckEditor(),
         DeckSelector.routeName: (context) => DeckSelector(),
         ImportFromURL.routeName: (context) => ImportFromURL(),
       },
@@ -44,7 +46,6 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-
   List<FlashCard> _cardList;
   int _activeCardIdx = 0;
   int _totalCardCt = 0;
@@ -130,6 +131,17 @@ class _MyHomePageState extends State<MyHomePage> {
     }
   }
 
+  Future createADeck(BuildContext context) async {
+    dynamic createdDeck = await Navigator.of(context).pushNamed(
+        DeckEditor.routeName,
+        arguments: ScreenArguments(currentDeck: _chosenDeck));
+    if (createdDeck != null && createdDeck["deckId"] != null) {
+      setState(() {
+        grabCardsAndDisplay(deckId: createdDeck["deckId"]);
+      });
+    }
+  }
+
   Future importFromURL(BuildContext context) async {
     dynamic createdDeckId =
         await Navigator.of(context).pushNamed(ImportFromURL.routeName);
@@ -143,7 +155,11 @@ class _MyHomePageState extends State<MyHomePage> {
   String buildCardTitle() {
     String title = "";
     if (_chosenDeck?.title != null) {
-      title = "${_chosenDeck.title} ${_activeCardIdx + 1} / $_totalCardCt";
+      if (_totalCardCt > 0) {
+        title = "${_chosenDeck.title} ${_activeCardIdx + 1} / $_totalCardCt";
+      } else {
+        title = "${_chosenDeck.title} (0 / 0)";
+      }
     }
     return title;
   }
@@ -193,6 +209,13 @@ class _MyHomePageState extends State<MyHomePage> {
             onTap: () async {
               Navigator.pop(context); // close the drawer before navigating away
               await createACard(context);
+            }),
+        ListTile(
+            title: Text("Add New Deck"),
+            trailing: Icon(Icons.arrow_forward),
+            onTap: () async {
+              Navigator.pop(context); // close the drawer before navigating away
+              await createADeck(context);
             }),
         ListTile(
           title: Text("Choose A Deck"),

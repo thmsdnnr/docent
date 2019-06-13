@@ -64,6 +64,9 @@ class MyCustomFormState extends State<MyCustomForm> {
           .toList()[0];
     }
     return DropdownButton<Deck>(
+      hint: Text("Add to deck"),
+      isExpanded: true,
+      isDense: false,
       value: _chosenDeck,
       onChanged: (Deck newDeck) {
         setState(() {
