@@ -49,7 +49,11 @@ class _FlashCardDisplayerState extends State<FlashCardDisplayer> {
                   sideToDisplay == FlashCardSide.front
                       ? widget.flashCard.front
                       : widget.flashCard.back,
-                  style: TextStyle(fontWeight: FontWeight.w300, fontSize: 20),
+                  style: TextStyle(
+                      fontWeight: FontWeight.w300,
+                      fontFamily: "IBM Plex Mono",
+                      fontFamilyFallback: ["sans-serif"],
+                      fontSize: 20),
                   textAlign: TextAlign.center,
                 )),
           ))
